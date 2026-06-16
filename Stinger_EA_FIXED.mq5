@@ -7,6 +7,7 @@ input double TakeProfit = 2500;               // Take profit in points
 input double StopLoss = 1000;                 // Stop loss in points
 input double TrailingStop = 1000;             // Trailing stop in points
 input int SMA_Period = 10;                    // SMA period
+input int SMA_BufferPoints = 100;             // Safety buffer above SMA (in points)
 
 //--- Global Variables
 datetime lastTradeCandle = 0;                // Track the last candle that executed a trade
@@ -16,7 +17,7 @@ datetime lastTradeCandle = 0;                // Track the last candle that execu
 //+------------------------------------------------------------------+
 int OnInit()
 {
-Print("Stinger EA Initialized. LotSize: ", LotSize, ", SMA Period: ", SMA_Period);
+Print("Stinger EA Initialized. LotSize: ", LotSize, ", SMA Period: ", SMA_Period, ", SMA Buffer: ", SMA_BufferPoints, " points");
 return(INIT_SUCCEEDED);
 }
 
@@ -48,6 +49,9 @@ if (smaValue == EMPTY_VALUE)
 
 smaValue = NormalizeDouble(smaValue, _Digits);
 
+// Calculate SMA with buffer (add 100 points as safety cushion)
+double smaWithBuffer = NormalizeDouble(smaValue + (SMA_BufferPoints * _Point), _Digits);
+
 // Get price data we need for our conditions
 double priceClose1 = iClose(NULL, PERIOD_CURRENT, 1);     // Close[-1] - Previous candle close
 double priceHigh2  = iHigh(NULL, PERIOD_CURRENT, 2);      // High[-2] - Two candles ago high
@@ -56,16 +60,24 @@ double openPrice   = iOpen(NULL, PERIOD_CURRENT, 0);      // Open[0] - Current c
 // Debugging information
 Print("DEBUG: New Bar Detected.");
 Print("DEBUG: SMA: ", smaValue);
-Print("DEBUG: Close[-1]: ", priceClose1, " (should be > SMA for buy)");
+Print("DEBUG: SMA + Buffer (", SMA_BufferPoints, " pts): ", smaWithBuffer);
+Print("DEBUG: Close[-1]: ", priceClose1, " (must be > SMA + buffer for buy)");
 Print("DEBUG: High[-2]: ", priceHigh2);
 Print("DEBUG: Open[0]: ", openPrice);
 
-// ENTRY CONDITION: Close[-1] > SMA AND Close[-1] > High[-2]
-// This ensures: previous candle closed above SMA and above the high of 2 candles ago
-if (priceClose1 > smaValue && priceClose1 > priceHigh2)
+// HARD FILTER: NO TRADES ALLOWED BELOW SMA + BUFFER
+if (priceClose1 <= smaWithBuffer)
+{
+    Print("DEBUG: BLOCKED - Close[-1] (", priceClose1, ") is AT or BELOW SMA+Buffer (", smaWithBuffer, "). NO TRADES ALLOWED.");
+    return;  // EXIT - Do not proceed with any trade logic
+}
+
+// ENTRY CONDITION: Close[-1] > SMA+Buffer AND Close[-1] > High[-2]
+// This ensures: previous candle closed above SMA+buffer and above the high of 2 candles ago
+if (priceClose1 > smaWithBuffer && priceClose1 > priceHigh2)
 {
     Print("DEBUG: Entry conditions MET!");
-    Print("DEBUG: Close[-1] (", priceClose1, ") > SMA (", smaValue, ") ✓");
+    Print("DEBUG: Close[-1] (", priceClose1, ") > SMA+Buffer (", smaWithBuffer, ") ✓");
     Print("DEBUG: Close[-1] (", priceClose1, ") > High[-2] (", priceHigh2, ") ✓");
     
     if (PositionsTotal() == 0) // Ensure no open positions
@@ -84,8 +96,8 @@ if (priceClose1 > smaValue && priceClose1 > priceHigh2)
 else
 {
     Print("DEBUG: Entry conditions NOT met.");
-    if (priceClose1 <= smaValue)
-        Print("DEBUG REASON: Close[-1] (", priceClose1, ") is NOT > SMA (", smaValue, ")");
+    if (priceClose1 <= smaWithBuffer)
+        Print("DEBUG REASON: Close[-1] (", priceClose1, ") is NOT > SMA+Buffer (", smaWithBuffer, ")");
     if (priceClose1 <= priceHigh2)
         Print("DEBUG REASON: Close[-1] (", priceClose1, ") is NOT > High[-2] (", priceHigh2, ")");
 }
