@@ -104,22 +104,6 @@ int OnInit()
       return INIT_FAILED;
    }
    
-   // Set buffers
-   SetIndexBuffer(0, rsi5_buffer, INDICATOR_DATA);
-   SetIndexBuffer(1, rsi14_buffer, INDICATOR_DATA);
-   SetIndexBuffer(2, hull5_buffer, INDICATOR_DATA);
-   SetIndexBuffer(3, hull5_color_buffer, INDICATOR_COLOR_INDEX);
-   SetIndexBuffer(4, hull10_buffer, INDICATOR_DATA);
-   SetIndexBuffer(5, hull10_color_buffer, INDICATOR_COLOR_INDEX);
-   SetIndexBuffer(6, sma10_buffer, INDICATOR_DATA);
-   
-   if (UseMACD_Confirmation)
-   {
-      SetIndexBuffer(7, macd_buffer, INDICATOR_DATA);
-      SetIndexBuffer(8, macd_signal_buffer, INDICATOR_DATA);
-      SetIndexBuffer(9, macd_histogram, INDICATOR_DATA);
-   }
-   
    return INIT_SUCCEEDED;
 }
 
