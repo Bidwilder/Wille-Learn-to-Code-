@@ -23,6 +23,7 @@ input int EndMinute = 0;                          // End trading minute
 datetime lastTradeCandle = 0;                     // Track last candle that executed a trade
 bool hullCrossoverDetected = false;               // Flag for Hull crossover detected on current candle
 datetime hullCrossoverTime = 0;                   // Time when Hull crossover was detected
+datetime lastProcessedCandle = 0;                 // Track last candle processed
 
 // Indicator Handles
 int handle_rsicombo = INVALID_HANDLE;
@@ -137,31 +138,31 @@ void OnTick()
       return;
    }
    
-   // Check for Hull(5) crossing above Hull(10)
-   bool hullCrossoverThisCandle = CheckHullCrossover();
+   // Check for Hull(5) crossing above Hull(10) on the PREVIOUS candle
+   bool hullCrossoverOnPreviousCandle = CheckHullCrossover();
    
-   // If Hull crossover detected and confirmation enabled, set flag and wait for next candle
-   if (hullCrossoverThisCandle && HullCrossoverWaitConfirm)
+   // If Hull crossover detected and confirmation enabled, set flag
+   if (hullCrossoverOnPreviousCandle && HullCrossoverWaitConfirm)
    {
       hullCrossoverDetected = true;
-      hullCrossoverTime = currentCandleTime;
-      Print("DEBUG: Hull(5) crossed above Hull(10) - Waiting for confirmation candle...");
+      hullCrossoverTime = iTime(NULL, PERIOD_CURRENT, 1);  // Time of the candle where crossover occurred
+      Print("DEBUG: Hull(5) crossed above Hull(10) on previous candle - Waiting for confirmation on next candle...");
       return;
    }
    
    // Check if we should execute (Hull crossover confirmed or immediate mode)
    bool shouldExecute = false;
    
-   if (HullCrossoverWaitConfirm && hullCrossoverDetected && hullCrossoverTime != currentCandleTime)
+   if (HullCrossoverWaitConfirm && hullCrossoverDetected)
    {
-      // Confirmation candle detected
+      // This is the confirmation candle (we're on a new candle after the crossover was detected)
       shouldExecute = true;
-      hullCrossoverDetected = false;
-      Print("DEBUG: Hull crossover confirmed! Checking entry conditions...");
+      hullCrossoverDetected = false;  // Reset flag
+      Print("DEBUG: Hull crossover confirmed on new candle! Checking entry conditions...");
    }
-   else if (!HullCrossoverWaitConfirm && hullCrossoverThisCandle)
+   else if (!HullCrossoverWaitConfirm && hullCrossoverOnPreviousCandle)
    {
-      // Immediate mode
+      // Immediate mode - execute on same candle as crossover
       shouldExecute = true;
       Print("DEBUG: Hull crossover detected (immediate mode). Checking entry conditions...");
    }
@@ -296,6 +297,7 @@ bool GetIndicatorValues()
 
 //+------------------------------------------------------------------+
 //| Check Hull Crossover: Hull(5) crosses above Hull(10)             |
+//| This checks if crossover happened between candle[1] and candle[0]|
 //+------------------------------------------------------------------+
 bool CheckHullCrossover()
 {
@@ -305,8 +307,9 @@ bool CheckHullCrossover()
    double hull10_current = hull10_buffer[0];
    double hull10_prev = hull10_buffer[1];
    
-   // Check for crossover: Hull(5) was below/equal Hull(10) and now above
-   bool crossoverDetected = (hull5_prev <= hull10_prev) && (hull5_current > hull10_current);
+   // Check for crossover: Hull(5) was below Hull(10) and now above
+   // Changed <= to < for more reliable crossover detection
+   bool crossoverDetected = (hull5_prev < hull10_prev) && (hull5_current > hull10_current);
    
    if (crossoverDetected)
    {
