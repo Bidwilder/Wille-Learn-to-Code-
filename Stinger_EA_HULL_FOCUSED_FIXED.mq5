@@ -71,20 +71,36 @@ int OnInit()
       return INIT_FAILED;
    }
    
-   // Create Hull(5) handle
+   // Create Hull(5) handle - try multiple possible filenames/paths to avoid tester load errors
    handle_hull5 = iCustom(_Symbol, PERIOD_CURRENT, "Hull_5");
+   if (handle_hull5 == INVALID_HANDLE) handle_hull5 = iCustom(_Symbol, PERIOD_CURRENT, "Hull5");
+   if (handle_hull5 == INVALID_HANDLE) handle_hull5 = iCustom(_Symbol, PERIOD_CURRENT, "Hull 5");
+   if (handle_hull5 == INVALID_HANDLE) handle_hull5 = iCustom(_Symbol, PERIOD_CURRENT, "Indicators\\Hull_5");
+   if (handle_hull5 == INVALID_HANDLE) handle_hull5 = iCustom(_Symbol, PERIOD_CURRENT, "Indicators\\Hull5");
    if (handle_hull5 == INVALID_HANDLE)
    {
-      Print("ERROR: Failed to load Hull(5) indicator. Error: ", GetLastError());
+      Print("ERROR: Failed to load Hull(5) indicator with any known name. Last GetLastError(): ", GetLastError());
       return INIT_FAILED;
    }
+   else
+   {
+      Print("INFO: Hull(5) indicator loaded (handle=", handle_hull5, ")");
+   }
    
-   // Create Hull(10) handle
+   // Create Hull(10) handle - try multiple possible filenames/paths
    handle_hull10 = iCustom(_Symbol, PERIOD_CURRENT, "Hull_10");
+   if (handle_hull10 == INVALID_HANDLE) handle_hull10 = iCustom(_Symbol, PERIOD_CURRENT, "Hull10");
+   if (handle_hull10 == INVALID_HANDLE) handle_hull10 = iCustom(_Symbol, PERIOD_CURRENT, "Hull 10");
+   if (handle_hull10 == INVALID_HANDLE) handle_hull10 = iCustom(_Symbol, PERIOD_CURRENT, "Indicators\\Hull_10");
+   if (handle_hull10 == INVALID_HANDLE) handle_hull10 = iCustom(_Symbol, PERIOD_CURRENT, "Indicators\\Hull10");
    if (handle_hull10 == INVALID_HANDLE)
    {
-      Print("ERROR: Failed to load Hull(10) indicator. Error: ", GetLastError());
+      Print("ERROR: Failed to load Hull(10) indicator with any known name. Last GetLastError(): ", GetLastError());
       return INIT_FAILED;
+   }
+   else
+   {
+      Print("INFO: Hull(10) indicator loaded (handle=", handle_hull10, ")");
    }
    
    // Create MACD handle
